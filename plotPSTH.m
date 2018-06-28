@@ -56,6 +56,7 @@ function plotPSTH(psth,params,isParametric)
                 
                 if isGrandAverage
                     plot(t,psth(timeIndex,:,paramIndex));
+                    xlim(t([1 end]));
                     ylim([minPSTH maxPSTH]);
                 else
                     imagesc(psth(timeIndex,:,paramIndex)')
