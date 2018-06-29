@@ -1,4 +1,4 @@
-function fun = convPredictionFun(kernelFun,lower,upper,isPlot,isFitToSummedData)
+function fun = convPredictionFun(kernelFun,lower,upper,isPlot,isFitToSummedData,start,length)
 % Functional version of Konrad's function for convolving the upstream 
 % responses to the downstream responses using a gamma distribution,
 % allowing an arbitrary kernel function to be used.
@@ -67,6 +67,11 @@ function fun = convPredictionFun(kernelFun,lower,upper,isPlot,isFitToSummedData)
         isFitToSummedData = false;
     end
     
+    if nargin < 6
+        start = 20;
+        length = 60;
+    end
+    
     assert(isa(kernelFun,'function_handle'),'First argument must be a function handle'); % TODO : validate order of params and x as well?
     
     function [deviation,predictions,kernel] = convPrediction(params,Bfull,Afull)
@@ -77,7 +82,7 @@ function fun = convPredictionFun(kernelFun,lower,upper,isPlot,isFitToSummedData)
             return
         end
         
-        x = 1:60;
+        x = 1:length;
 
         kernel = kernelFun(params,x);
         kernel = kernel/sum(kernel);
@@ -89,16 +94,16 @@ function fun = convPredictionFun(kernelFun,lower,upper,isPlot,isFitToSummedData)
         % TODO : introduce dim argument so arrays can be arbitrary shape
         for ii = 1:5
             for jj = 1:5
-                preds = max(0,conv2(squeeze(Bfull(ii,jj,21:80)),kernel')*params(end-2)-params(end-1))+params(end);
-                preds = preds(1:60);
-                predictions(ii,jj,21:80) = preds;
+                preds = max(0,conv2(squeeze(Bfull(ii,jj,x+start)),kernel')*params(end-2)-params(end-1))+params(end);
+                preds = preds(x);
+                predictions(ii,jj,x+start) = preds;
 
                 if isFitToSummedData
                     sumA = sum(squeeze(Afull(ii,jj,21:71)));
                     sumP = sum(preds(21:71));
                     deviation = deviation+(sumA-sumP).^2/sumA.^2;
                 else
-                    deviation=deviation+(sum((squeeze(Afull(ii,jj,21:80))-preds).^2))/(sum(squeeze(Afull(ii,jj,21:80).^2)));
+                    deviation=deviation+(sum((squeeze(Afull(ii,jj,x+start))-preds).^2))/(sum(squeeze(Afull(ii,jj,x+start).^2)));
                 end
             end
         end

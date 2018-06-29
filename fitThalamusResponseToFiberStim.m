@@ -30,20 +30,13 @@ Bfull = reshape(stimulusArray(:,sortIndices)',5,5,[]);
 
 %%
 
-kernelFun = convPredictionFun('exp',[],[],true);
-
+isPlot = false;
+kernelFun = convPredictionFun('exp',0,Inf,isPlot,false,100,100);
 %%
-
-initialParams = [10 10 0 0];
+initialParams = [0.07 0.82 0.0835 0.0082];
 [~,initialPrediction] = kernelFun(initialParams,Bfull,Afull);
+plotConvPrediction(initialPrediction,Bfull,Afull);
 %%
-% figure
-for nn = 1:25
-    subplot(5,5,nn);
-    hold on;
-    [ii,jj] = ind2sub([5 5],sortIndices(nn));
-    plot(squeeze(Bfull(ii,jj,:)));
-    plot(squeeze(Afull(ii,jj,:)));
-    plot(squeeze(initialPrediction(ii,jj,:)));
-    ylim([0 1]);
-end
+optimisedParams = fminsearch(@(p) kernelFun(p,Bfull,Afull),initialParams);
+[~,optimisedPrediction] = kernelFun(optimisedParams,Bfull,Afull);
+plotConvPrediction(optimisedPrediction,Bfull,Afull);

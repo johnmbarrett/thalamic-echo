@@ -39,7 +39,7 @@ else
     figure(fig);
 end
 
-x = (1:100)';
+x = (1:size(predictions,3))';
 kk = 0;
 
 for ii=1:5
@@ -48,6 +48,7 @@ for ii=1:5
         
         subplot(5,5,kk);
         
+        cla;
         hold on;
         
         plot(x,squeeze(Bfull(ii,jj,:))/3,'Color',[0 0 0.7]);
