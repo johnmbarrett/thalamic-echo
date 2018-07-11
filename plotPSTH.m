@@ -50,7 +50,7 @@ function plotPSTH(psth,params,isParametric)
         
         for jj = 1:rows
             for kk = 1:cols
-                subplot(rows,cols,cols*(jj-1)+kk);
+                subplot(rows,cols,rows*(cols-jj)+kk);
                 
                 paramIndex = params.(rowField) == rowValues(jj) & params.(colField) == colValues(kk) & figureIndex == ii;
                 
