@@ -25,15 +25,13 @@ end
 %%
 
 [~,sortIndices] = sortrows([params.PulseWidth params.PercentPower]);
-Afull = reshape(thalamusPSTH(:,sortIndices)',5,5,[]);
-Bfull = reshape(stimulusArray(:,sortIndices)',5,5,[]);
-
-%%
+Afull = reshape(thalamusPSTH(2:end,sortIndices)',5,5,[]);
+Bfull = reshape(stimulusArray(2:end,sortIndices)',5,5,[]);
 
 isPlot = false;
-kernelFun = convPredictionFun('exp',0,Inf,isPlot,false,100,100);
+kernelFun = @convPredictionAdaptFast; %convPredictionFun('exp',0,Inf,isPlot,false,100,100);
 %%
-initialParams = [0.07 0.82 0.0835 0.0082];
+initialParams = [0 -10 0.001];
 [~,initialPrediction] = kernelFun(initialParams,Bfull,Afull);
 plotConvPrediction(initialPrediction,Bfull,Afull);
 %%
