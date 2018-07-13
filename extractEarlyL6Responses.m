@@ -7,6 +7,8 @@ dates = vertcat(dates(vertcat(dates.isdir) & arrayfun(@(s) ~isempty(regexp(s.nam
 nDates = size(dates,1);
 %%
 
+mps = cell(1,nDates);
+xy = cell(1,nDates);
 probeLocations = cell(1,nDates);
 %%
 close all
@@ -14,23 +16,25 @@ close all
 for ii = 1:nDates-1
     cd([topDir '\' dates(ii,:)]);
     
-    mps = dir;
+    mps{ii} = dir;
     
-    tokens = arrayfun(@(s) regexp(s.name,'MP-10-100-([0-9]+)x([0-9]+)','tokens'),mps,'UniformOutput',false);
+    tokens = arrayfun(@(s) regexp(s.name,'MP-10-100-([0-9]+)x([0-9]+)','tokens'),mps{ii},'UniformOutput',false);
     
-    good = vertcat(mps.isdir) & ~cellfun(@isempty,tokens);
-    mps = mps(good);
+    good = vertcat(mps{ii}.isdir) & ~cellfun(@isempty,tokens);
+    mps{ii} = mps{ii}(good);
     tokens = tokens(good);
     
-    probeLocations{ii} = zeros(numel(mps),min(4,nProbes));
+    probeLocations{ii} = zeros(numel(mps{ii}),min(4,nProbes));
+    xy{ii} = zeros(numel(mps{ii}),2);
     
-    for jj = 1:numel(mps)
-        cd([topDir '\' dates(ii,:) '\' mps(jj).name]);
+    for jj = 1:numel(mps{ii})
+        cd([topDir '\' dates(ii,:) '\' mps{ii}(jj).name]);
         
-        load([mps(jj).name '.mat']); % always right?
+        load([mps{ii}(jj).name '.mat']); % always right?
         
         X = str2double(tokens{jj}{1}{1});
         Y = str2double(tokens{jj}{1}{2});
+        xy{ii}(jj,:) = [X Y];
         MP_ResStart_Amp_Vol_2;
         
         figs = findobj('Type','figure');
@@ -50,4 +54,4 @@ end
 
 probeLocations = cellfun(@floor,probeLocations,'UniformOutput',false);
 cd(topDir);
-save('probe_locations.mat','dates','mps','tokens','probeLocations');
+save('probe_locations.mat','dates','mps','xy','probeLocations');
