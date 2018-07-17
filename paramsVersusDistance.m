@@ -25,7 +25,8 @@ for gg = 1:numel(probeLocations)
         datas = {Response_start_2 Response_peak_2 Response_vol_2};
         dataLabels = {'Response start' 'Response peak' 'Response volume'};
         probes = 1:size(Response_start_2,3);
-        nProbes = min(4,numel(probes));
+        nProbes = numel(probes); %%min(4,numel(probes));
+        nCortexProbes = min(4,nProbes);
 
         for ii = 1:3
             cc = [min(datas{ii}(isfinite(datas{ii}))) max(datas{ii}(isfinite(datas{ii})))];
@@ -54,7 +55,7 @@ for gg = 1:numel(probeLocations)
         probeX = zeros(1,nProbes);
         probeY = zeros(1,nProbes);
 
-        for ii = 1:nProbes
+        for ii = 1:nCortexProbes
             subplot(4,nProbes,(3*nProbes)+ii);
             [probeX(ii),probeY(ii)] = ind2sub([y x],probeLocations{gg}(hh,ii));
             dd(:,:,ii) = sqrt((Y-probeY(ii)).^2+(X-probeX(ii)).^2); %createMap(d(probes(ii),:),params);
@@ -86,7 +87,7 @@ for gg = 1:numel(probeLocations)
             datas{ii}(noResponse) = NaN;
             yy = [0 max(datas{ii}(isfinite(datas{ii})))];
 
-            for jj = 1:nProbes
+            for jj = 1:nCortexProbes
                 subplot(4,nProbes,nProbes*(ii-1)+jj);
                 hold on;
 
@@ -98,13 +99,14 @@ for gg = 1:numel(probeLocations)
                     x2 = ceil(m)*kk-mod(size(dd,2),2);
                     x{kk} = reshape(dd(:,x1:x2,probes(jj)),[],1);
                     y{kk} = reshape(datas{ii}(:,x1:x2,probes(jj)),[],1);
-                    plot(x{kk},y{kk},'Color',[kk-1 0 2-kk],'LineStyle','none','Marker','o');
+                    plot(x{kk},y{kk},'Color',[kk-1 0 2-kk],'LineStyle','none','Marker','o','MarkerSize',3*(1+(kk==side(jj))));
+                    
                     [beta(ii,jj,kk,:),~,~,~,stats] = regress(y{kk}(isfinite(y{kk})),[ones(sum(isfinite(y{kk})),1) x{kk}(isfinite(y{kk}))]);
                     
-                    maxD = max(reshape(dd(:,x1:x2,probes(jj)),[],1));
+                    maxD = max(x{kk}(isfinite(y{kk})));
                     
                     if kk == side(jj)
-                        plot(0:maxD,beta(ii,jj,kk,1)+(0:maxD)*beta(ii,jj,kk,2),'Color',3*[kk-1 0 2-kk]/4);
+                        plot([0 maxD],beta(ii,jj,kk,1)+[0 maxD]*beta(ii,jj,kk,2),'Color',3*[kk-1 0 2-kk]/4);
                     end
                     
                     R2(ii,jj,kk) = stats(4);
@@ -133,10 +135,16 @@ for gg = 1:numel(probeLocations)
             
             hold on;
             
-            plot(Response_start_2(:,:,probes(ii)),Response_vol_2(:,:,probes(ii)),'Color','b','LineStyle','none','Marker','o');
+            l = datas{1}(:,:,probes(ii));
+            v = datas{2}(:,:,probes(ii));
+            plot(l,v,'Color','k','LineStyle','none','Marker','o');
             
-            xlim([0 max(Response_start_2(:))]);
-            ylim([0 max(Response_vol_2(:))]);
+            b = regress(v(:),[ones(numel(l),1) l(:)]);
+            
+            plot([0 max(l(:))],b(1)+[0 max(l(:))]*b(2),'Color',[0.5 0.5 0.5],'LineStyle','--');
+            
+            xlim([0 max(datas{1}(:))]);
+            ylim([0 max(datas{2}(:))]);
             
             xlabel('Response latency');
             
