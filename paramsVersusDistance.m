@@ -70,8 +70,12 @@ for gg = 1:numel(probeLocations)
             colormap(gca,gray(256));
         end
         
-        m = ceil(size(dd,2)/2);
+        m = size(dd,2)/2;
         side = ceil(probeX/m);
+        
+        if nProbes > nCortexProbes
+            side(end) = 2; % TODO : always R-thalamus
+        end
         
         annotation('textbox', [0 0.9 1 0.1], 'String', sprintf('Date %s recording %s',dates(gg,:),mps{gg}(hh).name), 'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'Interpreter', 'none')
         
@@ -180,8 +184,60 @@ for gg = 1:numel(probeLocations)
         
         jbsavefig(gcf,'responses_versus_distance_%s_%s',dates(gg,:),mps{gg}(hh).name);
 %         close(gcf);
+%%
+        figure
+        colours = 'rgbmc';
+        dataNames = {'amplitude' 'latency'};
+        labels = {'Left ' 'Right '; 'Contralateral ' 'Ipsilateral '};
+        
+        for ii = 1:2
+            for jj = 1:2
+                for kk = 1:2
+                    subplot(2,4,ii+2*(jj-1)+4*(kk-1));
+                    hold on;
+
+                    for ll = 1:max(1,(ii==2)*nProbes)
+                        if kk == 1
+                            xrange = 1:floor(m);
+                            yrange = (ceil(m)+1):size(dd,2);
+                        else
+                            yrange = ((1+ceil(m)*(side(ll)-1))):ceil(m)*side(ll)-mod(size(dd,2),2);
+                            xrange = ((1+ceil(m)*(2-side(ll)))):ceil(m)*(3-side(ll))-mod(size(dd,2),2);
+                        end
+                        
+                        plot(datas{5-2*jj}(:,xrange,ll),datas{5-2*jj}(:,yrange,ll),'Color',colours(ll),'LineStyle','none','Marker','o','MarkerSize',3);
+                    end
+                    
+                    if prod([ii jj kk] == 1)
+                        hs = gobjects(nProbes,1);
+                        
+                        for ll = 1:nProbes
+                            hs(ll) = plot(NaN,NaN,'Color',colours(ll),'LineStyle','none','Marker','o','MarkerSize',3);
+                        end
+                        
+                        legend(hs,arrayfun(@(ll) sprintf('Probe %d',ll),1:nProbes,'UniformOutput',false),'AutoUpdate','off','Location','Best');
+                    end
+                        
+                    plot([1e-3 1e3],[1e-3 1e3],'Color',[0.5 0.5 0.5],'LineStyle','--');
+                    
+                    set(gca,'XScale','log','YScale','log')
+                    
+                    xlabel([labels{kk,1} dataNames{jj}]);
+                    xlim([min(datas{5-2*jj}(:)) max(datas{5-2*jj}(:))]);
+                    ylabel([labels{kk,2} dataNames{jj}]);
+                    ylim([min(datas{5-2*jj}(:)) max(datas{5-2*jj}(:))]);
+                end
+            end
+        end
+        
+        annotation('textbox', [0 0.9 1 0.1], 'String', sprintf('Date %s recording %s',dates(gg,:),mps{gg}(hh).name), 'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'Interpreter', 'none')
+        
+        jbsavefig(gcf,'laterality_%s_%s',dates(gg,:),mps{gg}(hh).name);
+%%        
     end
 end
+
+close all
 
 cd(topDir);
 
