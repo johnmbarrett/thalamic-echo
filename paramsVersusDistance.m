@@ -54,6 +54,9 @@ for gg = 1:numel(probeLocations)
             daspect([1 1 1]);
         end
         
+        jbsavefig(gcf,'all_maps_%s_%s',dates(gg,:),mps{gg}(hh).name);
+        close(gcf);
+        
         continue
 
         %%
@@ -62,7 +65,6 @@ for gg = 1:numel(probeLocations)
         % datas = {volume peak latencyIndex/1000};
         % dataLabels = {'Response Volume' 'Response Peak' 'Threshold Latency'};
         % probes = [1:3 5];
-        nProbes = numel(probes);
 
         beta = zeros(3,nProbes,3,2);
         R2 = zeros(3,nProbes,3); % datas, probes, hemispheres
