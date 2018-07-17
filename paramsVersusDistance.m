@@ -62,8 +62,10 @@ for gg = 1:numel(probeLocations)
         d = max(dd(:));
         m = ceil(size(dd,2)/2);
         
+        annotation('textbox', [0 0.9 1 0.1], 'String', sprintf('Date %s recording %s',dates(gg,:),mps{gg}(hh).name), 'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'Interpreter', 'none')
+        
         jbsavefig(gcf,'all_maps_%s_%s',dates(gg,:),mps{gg}(hh).name);
-        close(gcf);
+%         close(gcf);
 
         %%
 
@@ -120,8 +122,10 @@ for gg = 1:numel(probeLocations)
         intercepts{gg}{hh} = beta(:,:,:,2);
         R2s{gg}{hh} = R2;
         
+        annotation('textbox', [0 0.9 1 0.1], 'String', sprintf('Date %s recording %s',dates(gg,:),mps{gg}(hh).name), 'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'Interpreter', 'none')
+        
         jbsavefig(gcf,'responses_versus_distance_%s_%s',dates(gg,:),mps{gg}(hh).name);
-        close(gcf);
+%         close(gcf);
     end
 end
 
