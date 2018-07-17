@@ -17,7 +17,7 @@ for gg = 1:numel(probeLocations)
         
         x = xy{gg}(hh,1);
         y = xy{gg}(hh,2);
-        [X,Y] = ndgrid(1:x,1:y);
+        [Y,X] = ndgrid(1:x,1:y);
         
         load('response_params.mat');
     
@@ -50,17 +50,21 @@ for gg = 1:numel(probeLocations)
 
 %         d = sqrt(bsxfun(@minus,params.X',probeLocations(:,1)).^2+bsxfun(@minus,11-params.Y',probeLocations(:,2)).^2);
         dd = zeros(x,y,nProbes);
+        
+        probeX = zeros(1,nProbes);
+        probeY = zeros(1,nProbes);
 
         for ii = 1:nProbes
             subplot(4,nProbes,(3*nProbes)+ii);
-            [probeY,probeX] = ind2sub([y x],probeLocations{gg}(hh,ii));
-            dd(:,:,ii) = sqrt((X-probeX).^2+(Y-probeY).^2); %createMap(d(probes(ii),:),params);
+            [probeX(ii),probeY(ii)] = ind2sub([y x],probeLocations{gg}(hh,ii));
+            dd(:,:,ii) = sqrt((Y-probeY(ii)).^2+(X-probeX(ii)).^2); %createMap(d(probes(ii),:),params);
             imagesc(dd(:,:,ii));
             daspect([1 1 1]);
         end
         
         d = max(dd(:));
         m = ceil(size(dd,2)/2);
+        side = ceil(probeX/m);
         
         annotation('textbox', [0 0.9 1 0.1], 'String', sprintf('Date %s recording %s',dates(gg,:),mps{gg}(hh).name), 'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'Interpreter', 'none')
         
@@ -83,7 +87,7 @@ for gg = 1:numel(probeLocations)
             yy = [0 max(datas{ii}(isfinite(datas{ii})))];
 
             for jj = 1:nProbes
-                subplot(3,nProbes,nProbes*(ii-1)+jj);
+                subplot(4,nProbes,nProbes*(ii-1)+jj);
                 hold on;
 
                 x = cell(1,2);
@@ -96,14 +100,20 @@ for gg = 1:numel(probeLocations)
                     y{kk} = reshape(datas{ii}(:,x1:x2,probes(jj)),[],1);
                     plot(x{kk},y{kk},'Color',[kk-1 0 2-kk],'LineStyle','none','Marker','o');
                     [beta(ii,jj,kk,:),~,~,~,stats] = regress(y{kk}(isfinite(y{kk})),[ones(sum(isfinite(y{kk})),1) x{kk}(isfinite(y{kk}))]);
-                    plot(0:d,beta(ii,jj,kk,1)+(0:d)*beta(ii,jj,kk,2),'Color',3*[kk-1 0 2-kk]/4);
+                    
+                    maxD = max(reshape(dd(:,x1:x2,probes(jj)),[],1));
+                    
+                    if kk == side(jj)
+                        plot(0:maxD,beta(ii,jj,kk,1)+(0:maxD)*beta(ii,jj,kk,2),'Color',3*[kk-1 0 2-kk]/4);
+                    end
+                    
                     R2(ii,jj,kk) = stats(4);
                 end
 
                 x = vertcat(x{:});
                 y = vertcat(y{:});
                 [beta(ii,jj,3,:),~,~,~,stats] = regress(y(isfinite(y)),[ones(sum(isfinite(y)),1) x(isfinite(y))]);
-                plot(0:d,beta(ii,jj,3,1)+(0:d)*beta(ii,jj,3,2),'Color',[0.75 0 0.75]);
+%                 plot(0:d,beta(ii,jj,3,1)+(0:d)*beta(ii,jj,3,2),'Color',[0.75 0 0.75]);
                 R2(ii,jj,3) = stats(4);
                 
                 ylim(yy);
@@ -115,6 +125,23 @@ for gg = 1:numel(probeLocations)
                 if jj == 1
                     ylabel(dataLabels{ii});
                 end
+            end
+        end
+        
+        for ii = 1:nProbes
+            subplot(4,nProbes,3*nProbes+ii);
+            
+            hold on;
+            
+            plot(Response_start_2(:,:,probes(ii)),Response_vol_2(:,:,probes(ii)),'Color','b','LineStyle','none','Marker','o');
+            
+            xlim([0 max(Response_start_2(:))]);
+            ylim([0 max(Response_vol_2(:))]);
+            
+            xlabel('Response latency');
+            
+            if ii == 1
+                ylabel('Response volume');
             end
         end
         
