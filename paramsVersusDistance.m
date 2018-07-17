@@ -155,15 +155,15 @@ for gg = 1:numel(probeLocations)
             hold on;
             
             l = datas{1}(:,:,probes(ii));
-            v = datas{2}(:,:,probes(ii));
+            v = datas{3}(:,:,probes(ii));
             plot(l,v,'Color','k','LineStyle','none','Marker','o');
             
             b = regress(v(:),[ones(numel(l),1) l(:)]);
             
-            plot([0 max(l(:))],b(1)+[0 max(l(:))]*b(2),'Color',[0.5 0.5 0.5],'LineStyle','--');
+            plot([min(l(:)) max(l(:))],b(1)+[min(l(:)) max(l(:))]*b(2),'Color',[0.5 0.5 0.5],'LineStyle','--');
             
             xlim([0 max(datas{1}(:))]);
-            ylim([0 max(datas{2}(:))]);
+            ylim([0 max(datas{3}(:))]);
             
             xlabel('Response latency');
             
