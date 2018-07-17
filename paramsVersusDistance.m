@@ -63,7 +63,6 @@ for gg = 1:numel(probeLocations)
             daspect([1 1 1]);
         end
         
-        d = max(dd(:));
         m = ceil(size(dd,2)/2);
         side = ceil(probeX/m);
         
@@ -79,8 +78,8 @@ for gg = 1:numel(probeLocations)
         % dataLabels = {'Response Volume' 'Response Peak' 'Threshold Latency'};
         % probes = [1:3 5];
 
-        beta = zeros(3,nProbes,3,2);
-        R2 = zeros(3,nProbes,3); % datas, probes, hemispheres
+        beta = zeros(3,nProbes,4,2);
+        R2 = zeros(3,nProbes,4); % datas, probes, hemispheres
 
         figure
         for ii = 1:3
@@ -97,16 +96,32 @@ for gg = 1:numel(probeLocations)
                 for kk = 1:2
                     x1 = 1+(kk-1)*ceil(m);
                     x2 = ceil(m)*kk-mod(size(dd,2),2);
-                    x{kk} = reshape(dd(:,x1:x2,probes(jj)),[],1);
+                    sign = (3-2*kk);
+                    x{kk} = sign*reshape(dd(:,x1:x2,probes(jj)),[],1);
                     y{kk} = reshape(datas{ii}(:,x1:x2,probes(jj)),[],1);
                     plot(x{kk},y{kk},'Color',[kk-1 0 2-kk],'LineStyle','none','Marker','o','MarkerSize',3*(1+(kk==side(jj))));
                     
                     [beta(ii,jj,kk,:),~,~,~,stats] = regress(y{kk}(isfinite(y{kk})),[ones(sum(isfinite(y{kk})),1) x{kk}(isfinite(y{kk}))]);
                     
-                    maxD = max(x{kk}(isfinite(y{kk})));
+                    minD = sign*min(abs(x{kk}(isfinite(y{kk}))));
+                    maxD = sign*max(abs(x{kk}(isfinite(y{kk}))));
                     
                     if kk == side(jj)
-                        plot([0 maxD],beta(ii,jj,kk,1)+[0 maxD]*beta(ii,jj,kk,2),'Color',3*[kk-1 0 2-kk]/4);
+                        plot([minD maxD],beta(ii,jj,kk,1)+[minD maxD]*beta(ii,jj,kk,2),'Color',3*[kk-1 0 2-kk]/4);
+                    else
+                        probeXdash = size(dd,2)-probeX(jj)+1; % TODO : flip about actual midline
+                        dddash = sqrt((Y-probeY(jj)).^2+(X-probeXdash).^2);
+                        xdash = sign*reshape(dddash(:,x1:x2),[],1);
+                        
+                        plot(xdash,y{kk},'Color',[0.75 0.75 0.75],'LineStyle','none','Marker','o','MarkerSize',3);
+                        
+                        [beta(ii,jj,4,:),~,~,~,stats] = regress(y{kk}(isfinite(y{kk})),[ones(sum(isfinite(y{kk})),1) xdash(isfinite(y{kk}))]);
+                        
+                        maxDdash = sign*max(abs(xdash(isfinite(y{kk}))));
+                        
+                        plot([0 maxDdash],beta(ii,jj,4,1)+[0 maxDdash]*beta(ii,jj,4,2),'Color',[0.5 0.5 0.5]);
+                        
+                        R2(ii,jj,4) = stats(4);
                     end
                     
                     R2(ii,jj,kk) = stats(4);
