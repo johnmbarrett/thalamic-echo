@@ -11,6 +11,9 @@ slopes = cellfun(@(A) cell(size(A)),mps,'UniformOutput',false);
 intercepts = cellfun(@(A) cell(size(A)),mps,'UniformOutput',false);
 R2s = cellfun(@(A) cell(size(A)),mps,'UniformOutput',false);
 
+colormaps = {jet2(256) hot(256) hot(256)};
+colormaps{1}(2:end,:) = flipud(colormaps{1}(2:end,:));
+
 for gg = 1:numel(probeLocations)
     for hh = 1:numel(mps{gg})
         cd([topDir '\' dates(gg,:) '\' mps{gg}(hh).name]);
@@ -27,15 +30,18 @@ for gg = 1:numel(probeLocations)
         probes = 1:size(Response_start_2,3);
         nProbes = numel(probes); %%min(4,numel(probes));
         nCortexProbes = min(4,nProbes);
+        
+        noResponse = bsxfun(@eq,Response_start_2,permute(max(reshape(Response_start_2,[],size(Response_start_2,3))),[3 1 2])); %Response_vol_2 == 0; %latencyIndex == 0;
 
         for ii = 1:3
+            datas{ii}(noResponse) = NaN;
             cc = [min(datas{ii}(isfinite(datas{ii}))) max(datas{ii}(isfinite(datas{ii})))];
 
             for jj = 1:nProbes
                 subplot(4,nProbes,nProbes*(ii-1)+jj);
                 imagesc(datas{ii}(:,:,jj));
                 caxis(cc);
-                colormap(hot);
+                colormap(gca,colormaps{ii});
 
                 if ii == 1
                     title(sprintf('Probe %d',probes(jj)));
@@ -61,6 +67,7 @@ for gg = 1:numel(probeLocations)
             dd(:,:,ii) = sqrt((Y-probeY(ii)).^2+(X-probeX(ii)).^2); %createMap(d(probes(ii),:),params);
             imagesc(dd(:,:,ii));
             daspect([1 1 1]);
+            colormap(gca,gray(256));
         end
         
         m = ceil(size(dd,2)/2);
@@ -72,8 +79,6 @@ for gg = 1:numel(probeLocations)
 %         close(gcf);
 
         %%
-
-        noResponse = bsxfun(@eq,Response_start_2,permute(max(reshape(Response_start_2,[],size(Response_start_2,3))),[3 1 2])); %Response_vol_2 == 0; %latencyIndex == 0;
         % datas = {volume peak latencyIndex/1000};
         % dataLabels = {'Response Volume' 'Response Peak' 'Threshold Latency'};
         % probes = [1:3 5];
@@ -83,7 +88,6 @@ for gg = 1:numel(probeLocations)
 
         figure
         for ii = 1:3
-            datas{ii}(noResponse) = NaN;
             yy = [0 max(datas{ii}(isfinite(datas{ii})))];
 
             for jj = 1:nCortexProbes
