@@ -7,7 +7,7 @@ load('probe_locations.mat');
 masterFile = 'all_experiments.xlsx';
 
 if exist(masterFile,'file')
-%     error('Master spreadsheet already exists. Go in and comment out this line of code if you really want to do this.');
+    error('Master spreadsheet already exists. Go in and comment out this line of code if you really want to do this.');
 end
 
 %%
