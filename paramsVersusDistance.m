@@ -14,6 +14,8 @@ R2s = cellfun(@(A) cell(size(A)),mps,'UniformOutput',false);
 colormaps = {jet2(256) hot(256) hot(256)};
 colormaps{1}(2:end,:) = flipud(colormaps{1}(2:end,:));
 
+probeNames = {'R-S1' 'R-M1' 'L-M1' 'L-S1' 'Thal'};
+
 for gg = 1:numel(probeLocations)
     for hh = 1:numel(mps{gg})
         cd([topDir '\' dates(gg,:) '\' mps{gg}(hh).name]);
@@ -44,7 +46,7 @@ for gg = 1:numel(probeLocations)
                 colormap(gca,colormaps{ii});
 
                 if ii == 1
-                    title(sprintf('Probe %d',probes(jj)));
+                    title(probeNames{jj});
                 end
 
                 if jj == 1
@@ -79,7 +81,7 @@ for gg = 1:numel(probeLocations)
         
         annotation('textbox', [0 0.9 1 0.1], 'String', sprintf('Date %s recording %s',dates(gg,:),mps{gg}(hh).name), 'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'Interpreter', 'none')
         
-        jbsavefig(gcf,'all_maps_%s_%s',dates(gg,:),mps{gg}(hh).name);
+        jbsavefig(gcf,'%s\\plots\\all_maps_%s_%s',topDir,dates(gg,:),mps{gg}(hh).name);
 %         close(gcf);
 
         %%
@@ -144,7 +146,7 @@ for gg = 1:numel(probeLocations)
                 ylim(yy);
 
                 if ii == 1
-                    title(sprintf('Probe %d',probes(jj)));
+                    title(probeNames{jj});
                 end
 
                 if jj == 1
@@ -182,7 +184,7 @@ for gg = 1:numel(probeLocations)
         
         annotation('textbox', [0 0.9 1 0.1], 'String', sprintf('Date %s recording %s',dates(gg,:),mps{gg}(hh).name), 'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'Interpreter', 'none')
         
-        jbsavefig(gcf,'responses_versus_distance_%s_%s',dates(gg,:),mps{gg}(hh).name);
+        jbsavefig(gcf,'%s\\plots\\responses_versus_distance_%s_%s',topDir,dates(gg,:),mps{gg}(hh).name);
 %         close(gcf);
 %%
         figure
@@ -215,24 +217,28 @@ for gg = 1:numel(probeLocations)
                             hs(ll) = plot(NaN,NaN,'Color',colours(ll),'LineStyle','none','Marker','o','MarkerSize',3);
                         end
                         
-                        legend(hs,arrayfun(@(ll) sprintf('Probe %d',ll),1:nProbes,'UniformOutput',false),'AutoUpdate','off','Location','Best');
+                        legend(hs,probeNames,'AutoUpdate','off','Location','Best');
                     end
                         
                     plot([1e-3 1e3],[1e-3 1e3],'Color',[0.5 0.5 0.5],'LineStyle','--');
                     
-                    set(gca,'XScale','log','YScale','log')
+                    if kk == 1
+                        set(gca,'XScale','log','YScale','log');
+                    end
+                    
+                    pbaspect([1 1 1]);
                     
                     xlabel([labels{kk,1} dataNames{jj}]);
-                    xlim([min(datas{5-2*jj}(:)) max(datas{5-2*jj}(:))]);
+                    xlim([(kk==1)*min(datas{5-2*jj}(:)) max(datas{5-2*jj}(:))]);
                     ylabel([labels{kk,2} dataNames{jj}]);
-                    ylim([min(datas{5-2*jj}(:)) max(datas{5-2*jj}(:))]);
+                    ylim([(kk==1)*min(datas{5-2*jj}(:)) max(datas{5-2*jj}(:))]);
                 end
             end
         end
         
         annotation('textbox', [0 0.9 1 0.1], 'String', sprintf('Date %s recording %s',dates(gg,:),mps{gg}(hh).name), 'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'Interpreter', 'none')
         
-        jbsavefig(gcf,'laterality_%s_%s',dates(gg,:),mps{gg}(hh).name);
+        jbsavefig(gcf,'%s\\plots\\laterality_%s_%s',topDir,dates(gg,:),mps{gg}(hh).name);
 %%        
     end
 end
