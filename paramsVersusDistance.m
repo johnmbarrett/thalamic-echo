@@ -340,6 +340,6 @@ close all
 
 cd(topDir);
 
-comment = sprintf('Slope is in ms/mm\n\nOuter cell array is date; inner cell array is multiple recordings on the same day; rows are latency, then peak, then vol; columns are probes; pages are left hemisphere, then right, then bilateral');
+comment = sprintf('Slope is in ms/mm\n\nFor slopes/intercepts/R2s, outer cell array is date; inner cell array is multiple recordings on the same day; rows are latency, then peak, then vol; columns are probes; pages are left hemisphere, then right, then bilateral\n\nFor binnedData, first dimension is bins, second is ipsi/contra, third is probes, fourth is start/peak/vol, fifth is recordings.');
 
-save('spread_parameters','comment','slopes','intercepts','R2s','binnedData');
+save('spread_parameters','comment','slopes','intercepts','R2s','binnedData','edges','binCentres','nBins');
