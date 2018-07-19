@@ -59,7 +59,7 @@ for gg = 1:nRecordings
         end
         
         for jj = 1:size(experimentParams.ExcludePixels{gg},1)
-            datas{ii}(expertimentParams.ExcludePixels{gg}(jj,1),expertimentParams.ExcludePixels{gg}(jj,2),:) = NaN;
+            datas{ii}(experimentParams.ExcludePixels{gg}(jj,1),experimentParams.ExcludePixels{gg}(jj,2),:) = NaN;
         end
         
         cc = [min(datas{ii}(isfinite(datas{ii}))) max(datas{ii}(isfinite(datas{ii})))];
@@ -269,11 +269,11 @@ for gg = 1:nRecordings
     jbsavefig(gcf,'%s\\plots\\laterality_%s_%s',topDir,datestr(experimentParams.Date(gg),'yyyymmdd'),experimentParams.MPFolder{gg});
 %%        
 end
-
+%%
 close all
 
 cd(topDir);
 
 comment = sprintf('Slope is in ms/mm\n\nOuter cell array is date; inner cell array is multiple recordings on the same day; rows are latency, then peak, then vol; columns are probes; pages are left hemisphere, then right, then bilateral');
 
-save('spread_parameters','comment','dates','mps','slopes','intercepts','R2s');
+save('spread_parameters','comment','slopes','intercepts','R2s');
