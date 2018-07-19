@@ -19,6 +19,12 @@ colormaps{1}(2:end,:) = flipud(colormaps{1}(2:end,:));
 
 probeNames = {'R-S1' 'R-M1' 'L-M1' 'L-S1' 'Thal'};
 
+edges = 0:1:10;
+binCentres = mean([edges(1:end-1);edges(2:end)]);
+nBins = numel(edges)-1;
+
+binnedData = cell(nBins,2,4,3,nRecordings);
+
 for gg = 1:nRecordings
     cd([topDir '\' datestr(experimentParams.Date(gg),'yyyymmdd') '\' experimentParams.MPFolder{gg}]);
 
@@ -146,12 +152,16 @@ for gg = 1:nRecordings
 
                 if kk == side(jj)
                     plot([minD maxD],beta(ii,jj,kk,1)+[minD maxD]*beta(ii,jj,kk,2),'Color',3*[kk-1 0 2-kk]/4);
+                    
+                    binnedData(:,1,validProbeIndices(jj),ii,gg) = arrayfun(@(l,r) y{kk}(abs(x{kk}) >= l & abs(x{kk}) < r),edges(1:end-1),edges(2:end),'UniformOutput',false); % TODO : last edge?
                 else
                     probeXdash = probeX(jj)-2*(probeX(jj)-median(m));
                     dddash = sqrt((Y-probeY(jj)).^2+(X-probeXdash).^2);
                     xdash = sign*reshape(dddash(:,hemispheres{kk}),[],1);
 
                     plot(xdash,y{kk},'Color',[0.75 0.75 0.75],'LineStyle','none','Marker','o','MarkerSize',3);
+                    
+                    binnedData(:,2,validProbeIndices(jj),ii,gg) = arrayfun(@(l,r) y{kk}(abs(xdash) >= l & abs(xdash) < r),edges(1:end-1),edges(2:end),'UniformOutput',false);
 
                     [beta(ii,jj,4,:),~,~,~,stats] = regress(y{kk}(isfinite(y{kk})),[ones(sum(isfinite(y{kk})),1) xdash(isfinite(y{kk}))]);
 
@@ -174,7 +184,7 @@ for gg = 1:nRecordings
             ylim(yy);
 
             if ii == 1
-                title(probeNames{jj});
+                title(probeNames{validProbeIndices(jj)});
             end
 
             if jj == 1
@@ -262,11 +272,67 @@ for gg = 1:nRecordings
                 ylim([(kk==1)*min(datas{5-2*jj}(:)) max(datas{5-2*jj}(:))]);
             end
         end
-    end
+    end     
 
     annotation('textbox', [0 0.9 1 0.1], 'String', sprintf('Date %s recording %s',datestr(experimentParams.Date(gg),'yyyymmdd'),experimentParams.MPFolder{gg}), 'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'Interpreter', 'none')
 
     jbsavefig(gcf,'%s\\plots\\laterality_%s_%s',topDir,datestr(experimentParams.Date(gg),'yyyymmdd'),experimentParams.MPFolder{gg});
+    %%
+    figure
+    for ii = 1:3
+        for jj = 1:nCortexProbes
+            subplot(3,nCortexProbes,nCortexProbes*(ii-1)+jj);
+            hold on;
+            
+            x = vertcat(binnedData{:,:,jj,ii,gg});
+            
+            if side(jj) == 1
+                allBinCentres = [-binCentres';binCentres'];
+            else
+                allBinCentres = [binCentres';-binCentres'];
+            end
+            
+            g = arrayfun(@(kk,data) repmat(kk,numel(data{1}),1),allBinCentres,reshape(binnedData(:,:,jj,ii,gg),[],1),'UniformOutput',false);
+            
+            boxplot(x,vertcat(g{:}),'Positions',sort(allBinCentres(~cellfun(@isempty,g))));
+            
+            xtick = [fliplr(-edges(2:end)) edges];
+            set(gca,'XTick',xtick,'XTickLabel',xtick);
+            
+            xlim([-edges(end) edges(end)]);
+            
+            for kk = 1:2
+                for ll = 1:nBins
+                    if isempty(g{nBins*(kk-1)+ll})
+                        continue
+                    end
+                    
+                    plot((2*side(jj)-3)*(3-2*kk)*binCentres(ll),binnedData{ll,kk,jj,ii,gg},'Color',[0.5 0.5 0.5]*(kk==2),'LineStyle','none','Marker','o','MarkerSize',3+3*(kk==1));
+                end
+            end
+            
+            if ii == 1
+                title(probeNames{validProbeIndices(jj)});
+            end
+
+            if jj == 1
+                if ii == 3
+                    xlabel('Distance from midline (laser grid steps)');
+                end
+                
+                ylabel(dataLabels{ii});
+            end
+            
+            yy = [min(datas{ii}(:)) max(datas{ii}(:))];
+            yy = yy+([-1 1]/10)*diff(yy);
+            
+            ylim(yy);
+        end
+    end
+    
+    annotation('textbox', [0 0.9 1 0.1], 'String', sprintf('Date %s recording %s',datestr(experimentParams.Date(gg),'yyyymmdd'),experimentParams.MPFolder{gg}), 'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'Interpreter', 'none')
+
+    jbsavefig(gcf,'%s\\plots\\binned_data_%s_%s',topDir,datestr(experimentParams.Date(gg),'yyyymmdd'),experimentParams.MPFolder{gg});
 %%        
 end
 %%
@@ -276,4 +342,4 @@ cd(topDir);
 
 comment = sprintf('Slope is in ms/mm\n\nOuter cell array is date; inner cell array is multiple recordings on the same day; rows are latency, then peak, then vol; columns are probes; pages are left hemisphere, then right, then bilateral');
 
-save('spread_parameters','comment','slopes','intercepts','R2s');
+save('spread_parameters','comment','slopes','intercepts','R2s','binnedData');
