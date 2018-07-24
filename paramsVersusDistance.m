@@ -1,11 +1,17 @@
-% TODO : laterality corrected distance, gordon's plots
+% TODO : this preamble should probably be refactored into a function/script
 
 topDir = 'Z:\LACIE\Manuscripts\2018 in vivo LSPS Ntsr1 etc\data';
 cd(topDir);
 
 %load('probe_locations.mat');
-experimentParams = readExperimentSpreadsheet;
+strain = 'SepW'; %'Ntsr1';
+experimentParams = readExperimentSpreadsheet(strain);
 % experimentParams.Midline = cellfun(@str2num,experimentParams.Midline,'UniformOutput',false);
+
+if ~strcmp(strain,'Ntsr1')
+    topDir = [topDir '\' strain];
+    cd(topDir)
+end
 
 %%
 
