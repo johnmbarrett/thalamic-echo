@@ -4,7 +4,7 @@ topDir = 'Z:\LACIE\Manuscripts\2018 in vivo LSPS Ntsr1 etc\data';
 cd(topDir);
 
 %load('probe_locations.mat');
-strain = 'SepW'; %'Ntsr1';
+strain = 'Ntsr1';
 experimentParams = readExperimentSpreadsheet(strain);
 % experimentParams.Midline = cellfun(@str2num,experimentParams.Midline,'UniformOutput',false);
 
@@ -19,13 +19,15 @@ nRecordings = size(experimentParams,1);
 slopes = cell(nRecordings,1);
 intercepts = cell(nRecordings,1);
 R2s = cell(nRecordings,1);
+ksps = cell(nRecordings,1);
+ksstats = cell(nRecordings,1);
 
 colormaps = {jet2(256) hot(256) hot(256)};
 colormaps{1}(2:end,:) = flipud(colormaps{1}(2:end,:));
 
 probeNames = {'R-S1' 'R-M1' 'L-M1' 'L-S1' 'Thal'};
 
-edges = 0:1:10;
+edges = 0:1.5:7.5;
 binCentres = mean([edges(1:end-1);edges(2:end)]);
 nBins = numel(edges)-1;
 
@@ -71,7 +73,7 @@ for gg = 1:nRecordings
         end
         
         for jj = 1:size(experimentParams.ExcludePixels{gg},1)
-            datas{ii}(experimentParams.ExcludePixels{gg}(jj,1),experimentParams.ExcludePixels{gg}(jj,2),:) = NaN;
+            datas{ii}(experimentParams.ExcludePixels{gg}(jj,2),experimentParams.ExcludePixels{gg}(jj,1),:) = NaN;
         end
         
         cc = [min(datas{ii}(isfinite(datas{ii}))) max(datas{ii}(isfinite(datas{ii})))];
@@ -128,11 +130,29 @@ for gg = 1:nRecordings
     % datas = {volume peak latencyIndex/1000};
     % dataLabels = {'Response Volume' 'Response Peak' 'Threshold Latency'};
     % probes = [1:3 5];
+    
+    
+    [left,right] = getHemispheres(size(dd,2),m);
+    hemispheres = {left right};
+    
+    ksps{gg} = zeros(3,nCortexProbes/2,2);
+    ksstats{gg} = zeros(3,nCortexProbes/2,2);
+    
+    for ii = 1:3
+        for jj = 1:nCortexProbes/2
+            for kk = 1:2
+                x = datas{ii}(:,hemispheres{3-kk},jj); % since right comes first in the standard probe order, this means we'll do ipsi first
+                y = datas{ii}(:,hemispheres{kk},nCortexProbes-jj+1);
+                
+%                 [~,ksps{gg}(ii,jj,kk),ksstats{gg}(ii,jj,kk)] = kstest2(x(isfinite(x(:))),y(isfinite(y(:))));
+                [ksps{gg}(ii,jj,kk),~,stats] = ranksum(x(isfinite(x(:))),y(isfinite(y(:))));
+                ksstats{gg}(ii,jj,kk) = stats.ranksum;
+            end
+        end
+    end
 
     beta = zeros(3,nProbes,4,2);
     R2 = zeros(3,nProbes,4); % datas, probes, hemispheres
-    [left,right] = getHemispheres(size(dd,2),m);
-    hemispheres = {left right};
 
     figure
     for ii = 1:3
@@ -348,4 +368,4 @@ cd(topDir);
 
 comment = sprintf('Slope is in ms/mm\n\nFor slopes/intercepts/R2s, outer cell array is date; inner cell array is multiple recordings on the same day; rows are latency, then peak, then vol; columns are probes; pages are left hemisphere, then right, then bilateral\n\nFor binnedData, first dimension is bins, second is ipsi/contra, third is probes, fourth is start/peak/vol, fifth is recordings.');
 
-save('spread_parameters','comment','slopes','intercepts','R2s','binnedData','edges','binCentres','nBins');
+save('spread_parameters','comment','slopes','intercepts','R2s','binnedData','edges','binCentres','nBins','ksps','ksstats');
