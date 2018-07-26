@@ -5,7 +5,7 @@ function experimentParams = readExperimentSpreadsheet(strain,includeAll)
 
     experimentParams = readtable('all_experiments.xlsx','Sheet',sprintf('%s maps',strain)); % TODO : top dir
     
-    textFormattedNumericFields = {'Midline' 'ExcludeColumns' 'ExcludeRows' 'ExcludePixels'};
+    textFormattedNumericFields = {'Midline' 'ExcludeColumns' 'ExcludeRows' 'ExcludePixels' 'ProbeOrder'};
     
     for ii = 1:numel(textFormattedNumericFields)
         field = textFormattedNumericFields{ii};

@@ -6,6 +6,7 @@ cd(topDir);
 %load('probe_locations.mat');
 strain = 'Ntsr1';
 % strain = 'SepW';
+% strain = 'Sim1';
 experimentParams = readExperimentSpreadsheet(strain);
 % experimentParams.Midline = cellfun(@str2num,experimentParams.Midline,'UniformOutput',false);
 
@@ -46,21 +47,20 @@ for gg = 1:nRecordings
     figure
     datas = {Response_start_2 Response_peak_2 Response_vol_2};
     dataLabels = {'Response start' 'Response peak' 'Response volume'};
-    probes = 1:size(Response_start_2,3);
-    nProbes = numel(probes); %%min(4,numel(probes));
-    nCortexProbes = min(4,nProbes);
+    probeOrder = experimentParams.ProbeOrder{gg};
+    [probes,~,probeSortOrder] = unique(probeOrder);
+    nProbes = numel(probeOrder);
+    assert(nProbes == size(Response_start_2,3),'Number of probes must match third dimension of response matrix. Check you have ProbeOrder set correctly in the spreadsheet.');
+    cortexProbes = find(probeOrder < 5);
+    cortexProbeOrder = probeOrder(cortexProbes);
+    [~,~,cortexProbeSortOrder] = unique(cortexProbeOrder);
+    nCortexProbes = numel(cortexProbeOrder);
 
     noResponse = bsxfun(@eq,Response_start_2,permute(max(reshape(Response_start_2,[],size(Response_start_2,3))),[3 1 2])); %Response_vol_2 == 0; %latencyIndex == 0;
     
     probeLocations = arrayfun(@(ii) experimentParams(gg,:).(sprintf('ProbeLocations_%d',ii)),1:4,'UniformOutput',false);
     probeLocations = [probeLocations{:}];
-    
-    % need these for indexing into the name array
-    validProbeIndices = find(isfinite(probeLocations));
-    
-    assert(numel(validProbeIndices) == nCortexProbes);
-    
-    probeLocations = probeLocations(validProbeIndices);
+    probeLocations = probeLocations(cortexProbeOrder);
 
     for ii = 1:3
         datas{ii}(noResponse) = NaN;
@@ -80,17 +80,13 @@ for gg = 1:nRecordings
         cc = [min(datas{ii}(isfinite(datas{ii}))) max(datas{ii}(isfinite(datas{ii})))];
 
         for jj = 1:nProbes
-            subplot(4,nProbes,nProbes*(ii-1)+jj);
+            subplot(4,nProbes,nProbes*(ii-1)+probeSortOrder(jj));
             imagesc(datas{ii}(:,:,jj));
             caxis(cc);
             colormap(gca,colormaps{ii});
 
             if ii == 1
-                if jj <= nCortexProbes
-                    title(probeNames{validProbeIndices(jj)});
-                else
-                    title(probeNames{end});
-                end
+                title(probeNames{probeOrder(jj)});
             end
 
             if jj == 1
@@ -102,24 +98,25 @@ for gg = 1:nRecordings
     end
 
 %         d = sqrt(bsxfun(@minus,params.X',probeLocations(:,1)).^2+bsxfun(@minus,11-params.Y',probeLocations(:,2)).^2);
-    dd = zeros(x,y,nProbes);
+    dd = zeros(x,y,nCortexProbes);
 
-    probeX = zeros(1,nProbes);
-    probeY = zeros(1,nProbes);
+    probeX = zeros(1,nCortexProbes);
+    probeY = zeros(1,nCortexProbes);
     
     for ii = 1:nCortexProbes
-        subplot(4,nProbes,(3*nProbes)+ii);
-        [probeX(ii),probeY(ii)] = ind2sub([y x],probeLocations(ii));
+        subplot(4,nProbes,(3*nProbes)+cortexProbeSortOrder(ii));
+        [probeX(ii),probeY(ii)] = ind2sub([y x],probeLocations(ii)); % TODO : test if this still works if the cortex probes are out of order. It should.
         dd(:,:,ii) = sqrt((Y-probeY(ii)).^2+(X-probeX(ii)).^2); %createMap(d(probes(ii),:),params);
         imagesc(dd(:,:,ii));
         daspect([1 1 1]);
         colormap(gca,gray(256));
     end
 
-    side = (probeX > m(end))+1; % TODO : hopefully none of the probes are in the midline 
+    side = zeros(1,nProbes);
+    side(cortexProbes) = (probeX > m(end))+1; % TODO : hopefully none of the probes are in the midline 
 
     if nProbes > nCortexProbes
-        side(end) = 2; % TODO : always R-thalamus?
+        side(setdiff(1:nProbes,cortexProbes)) = 2; % TODO : always R-thalamus?
     end
 
     annotation('textbox', [0 0.9 1 0.1], 'String', sprintf('Date %s recording %s',datestr(experimentParams.Date(gg),'yyyymmdd'),experimentParams.MPFolder{gg}), 'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'Interpreter', 'none')
@@ -135,32 +132,34 @@ for gg = 1:nRecordings
     
     [left,right] = getHemispheres(size(dd,2),m);
     hemispheres = {left right};
-    
-    ksps{gg} = zeros(3,nCortexProbes/2,2);
-    ksstats{gg} = zeros(3,nCortexProbes/2,2);
-    
-    for ii = 1:3
-        for jj = 1:nCortexProbes/2
-            for kk = 1:2
-                x = datas{ii}(:,hemispheres{3-kk},jj); % since right comes first in the standard probe order, this means we'll do ipsi first
-                y = datas{ii}(:,hemispheres{kk},nCortexProbes-jj+1);
-                
-%                 [~,ksps{gg}(ii,jj,kk),ksstats{gg}(ii,jj,kk)] = kstest2(x(isfinite(x(:))),y(isfinite(y(:))));
-                [ksps{gg}(ii,jj,kk),~,stats] = ranksum(x(isfinite(x(:))),y(isfinite(y(:))));
-                ksstats{gg}(ii,jj,kk) = stats.ranksum;
-            end
-        end
-    end
 
-    beta = zeros(3,nProbes,4,2);
-    R2 = zeros(3,nProbes,4); % datas, probes, hemispheres
+    % TODO : assuming we even want to do this any more, this doesn't work
+    % when can't assume that the cortex probes are symmetric
+%     ksps{gg} = zeros(3,nCortexProbes/2,2);
+%     ksstats{gg} = zeros(3,nCortexProbes/2,2);
+%     
+%     for ii = 1:3
+%         for jj = 1:nCortexProbes/2
+%             for kk = 1:2
+%                 x = datas{ii}(:,hemispheres{3-kk},jj); % since right comes first in the standard probe order, this means we'll do ipsi first
+%                 y = datas{ii}(:,hemispheres{kk},nCortexProbes-jj+1);
+%                 
+% %                 [~,ksps{gg}(ii,jj,kk),ksstats{gg}(ii,jj,kk)] = kstest2(x(isfinite(x(:))),y(isfinite(y(:))));
+%                 [ksps{gg}(ii,jj,kk),~,stats] = ranksum(x(isfinite(x(:))),y(isfinite(y(:))));
+%                 ksstats{gg}(ii,jj,kk) = stats.ranksum;
+%             end
+%         end
+%     end
+
+    beta = zeros(3,nCortexProbes,4,2);
+    R2 = zeros(3,nCortexProbes,4); % datas, probes, hemispheres
 
     figure
     for ii = 1:3
         yy = [0 max(datas{ii}(isfinite(datas{ii})))];
 
         for jj = 1:nCortexProbes
-            subplot(4,nProbes,nProbes*(ii-1)+jj);
+            subplot(4,nProbes,nProbes*(ii-1)+cortexProbeSortOrder(jj));
             hold on;
 
             x = cell(1,2);
@@ -168,8 +167,8 @@ for gg = 1:nRecordings
 
             for kk = 1:2
                 sign = 2*kk-3;
-                x{kk} = sign*reshape(dd(:,hemispheres{kk},probes(jj)),[],1);
-                y{kk} = reshape(datas{ii}(:,hemispheres{kk},probes(jj)),[],1);
+                x{kk} = sign*reshape(dd(:,hemispheres{kk},jj),[],1);
+                y{kk} = reshape(datas{ii}(:,hemispheres{kk},cortexProbes(jj)),[],1);
                 plot(x{kk},y{kk},'Color',[kk-1 0 2-kk],'LineStyle','none','Marker','o','MarkerSize',3*(1+(kk==side(jj))));
 
                 [beta(ii,jj,kk,:),~,~,~,stats] = regress(y{kk}(isfinite(y{kk})),[ones(sum(isfinite(y{kk})),1) x{kk}(isfinite(y{kk}))]);
@@ -180,7 +179,7 @@ for gg = 1:nRecordings
                 if kk == side(jj)
                     plot([minD maxD],beta(ii,jj,kk,1)+[minD maxD]*beta(ii,jj,kk,2),'Color',3*[kk-1 0 2-kk]/4);
                     
-                    binnedData(:,1,validProbeIndices(jj),ii,gg) = arrayfun(@(l,r) y{kk}(abs(x{kk}) >= l & abs(x{kk}) < r),edges(1:end-1),edges(2:end),'UniformOutput',false); % TODO : last edge?
+                    binnedData(:,1,cortexProbeSortOrder(jj),ii,gg) = arrayfun(@(l,r) y{kk}(abs(x{kk}) >= l & abs(x{kk}) < r),edges(1:end-1),edges(2:end),'UniformOutput',false); % TODO : last edge?
                 else
                     probeXdash = probeX(jj)-2*(probeX(jj)-median(m));
                     dddash = sqrt((Y-probeY(jj)).^2+(X-probeXdash).^2);
@@ -188,7 +187,7 @@ for gg = 1:nRecordings
 
                     plot(xdash,y{kk},'Color',[0.75 0.75 0.75],'LineStyle','none','Marker','o','MarkerSize',3);
                     
-                    binnedData(:,2,validProbeIndices(jj),ii,gg) = arrayfun(@(l,r) y{kk}(abs(xdash) >= l & abs(xdash) < r),edges(1:end-1),edges(2:end),'UniformOutput',false);
+                    binnedData(:,2,cortexProbeSortOrder(jj),ii,gg) = arrayfun(@(l,r) y{kk}(abs(xdash) >= l & abs(xdash) < r),edges(1:end-1),edges(2:end),'UniformOutput',false);
 
                     [beta(ii,jj,4,:),~,~,~,stats] = regress(y{kk}(isfinite(y{kk})),[ones(sum(isfinite(y{kk})),1) xdash(isfinite(y{kk}))]);
 
@@ -211,7 +210,7 @@ for gg = 1:nRecordings
             ylim(yy);
 
             if ii == 1
-                title(probeNames{validProbeIndices(jj)});
+                title(probeNames{cortexProbeOrder(jj)});
             end
 
             if jj == 1
@@ -221,12 +220,12 @@ for gg = 1:nRecordings
     end
 
     for ii = 1:nProbes
-        subplot(4,nProbes,3*nProbes+ii);
+        subplot(4,nProbes,3*nProbes+probeSortOrder(ii));
 
         hold on;
 
-        l = datas{1}(:,:,probes(ii));
-        v = datas{3}(:,:,probes(ii));
+        l = datas{1}(:,:,ii);
+        v = datas{3}(:,:,ii);
         plot(l,v,'Color','k','LineStyle','none','Marker','o');
 
         b = regress(v(:),[ones(numel(l),1) l(:)]);
@@ -257,13 +256,13 @@ for gg = 1:nRecordings
     dataNames = {'amplitude' 'latency'};
     labels = {'Left ' 'Right '; 'Contralateral ' 'Ipsilateral '};
 
-    for ii = 1:2
-        for jj = 1:2
-            for kk = 1:2
+    for ii = 1:2 % single probe or all probes
+        for jj = 1:2 % latency or volume
+            for kk = 1:2 % left/right or ipsi/contra
                 subplot(2,4,ii+2*(jj-1)+4*(kk-1));
                 hold on;
 
-                for ll = 1:max(1,(ii==2)*nProbes)
+                for ll = 1:max(1,(ii==2)*nProbes) % probes
                     if kk == 1
                         xrange = left;
                         yrange = right;
@@ -272,17 +271,17 @@ for gg = 1:nRecordings
                         xrange = hemispheres{3-side(ll)};
                     end
 
-                    plot(datas{5-2*jj}(:,xrange,ll),datas{5-2*jj}(:,yrange,ll),'Color',colours(ll),'LineStyle','none','Marker','o','MarkerSize',3);
+                    plot(datas{5-2*jj}(:,xrange,ll),datas{5-2*jj}(:,yrange,ll),'Color',colours(probeOrder(ll)),'LineStyle','none','Marker','o','MarkerSize',3);
                 end
 
                 if prod([ii jj kk] == 1)
                     hs = gobjects(nProbes,1);
 
                     for ll = 1:nProbes
-                        hs(ll) = plot(NaN,NaN,'Color',colours(ll),'LineStyle','none','Marker','o','MarkerSize',3);
+                        hs(probeSortOrder(ll)) = plot(NaN,NaN,'Color',colours(probeOrder(ll)),'LineStyle','none','Marker','o','MarkerSize',3);
                     end
 
-                    legend(hs,probeNames,'AutoUpdate','off','Location','Best');
+                    legend(hs,probeNames(probes),'AutoUpdate','off','Location','Best');
                 end
 
                 plot([1e-3 1e3],[1e-3 1e3],'Color',[0.5 0.5 0.5],'LineStyle','--');
@@ -305,6 +304,7 @@ for gg = 1:nRecordings
 
     jbsavefig(gcf,'%s\\plots\\laterality_%s_%s',topDir,datestr(experimentParams.Date(gg),'yyyymmdd'),experimentParams.MPFolder{gg});
     %%
+    % TODO : test this with out of order cortex probes too
     figure
     for ii = 1:3
         for jj = 1:nCortexProbes
@@ -339,7 +339,7 @@ for gg = 1:nRecordings
             end
             
             if ii == 1
-                title(probeNames{validProbeIndices(jj)});
+                title(probeNames{cortexProbeOrder(jj)});
             end
 
             if jj == 1
