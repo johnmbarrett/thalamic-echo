@@ -5,6 +5,7 @@ cd(topDir);
 
 %load('probe_locations.mat');
 strain = 'Ntsr1';
+% strain = 'SepW';
 experimentParams = readExperimentSpreadsheet(strain);
 % experimentParams.Midline = cellfun(@str2num,experimentParams.Midline,'UniformOutput',false);
 
