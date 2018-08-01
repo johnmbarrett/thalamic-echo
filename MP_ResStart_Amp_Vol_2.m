@@ -26,6 +26,7 @@ for h = 1:nProbes
 %     figure; this is pre artifact subtraction, we don't care about that
 %     imagesc(PSTH_t1);
     %%
+%     PSTH_t(21:38,:) = repmat(mean(PSTH_t(1:19,:)),18,1);
     PSTH_t(21,:) = mean(PSTH_t(1:19,:));
     PSTH_t(22,:) = mean(PSTH_t(1:19,:));
     PSTH_t(23,:) = mean(PSTH_t(1:19,:));
@@ -48,14 +49,23 @@ for h = 1:nProbes
     PSTH_t_alls = smooth(PSTH_t_all,5);
     Resp_t_thd = mean(PSTH_t_alls(1:PreSti)) + 0.1 * (max(PSTH_t_alls) - mean(PSTH_t_alls(1:PreSti)));  %%%%%%%%%%%%%%%
 
-    for i = 1:size(PSTH_t_alls,1)-1
-        if PSTH_t_alls(i, 1) <= Resp_t_thd && PSTH_t_alls(i+1, 1) > Resp_t_thd
-            Resp_t(1,1) = i;
-        end
-        if PSTH_t_alls(i, 1) > Resp_t_thd && PSTH_t_alls(i+1, 1) <= Resp_t_thd
-            Resp_t(2,1) = i;
-        end
-    end
+    % JB 2018-08-01 - if the response is week, this would find the last
+    % window in which the baseline creeps above the threshold, not the
+    % actual response
+%     for i = 1:size(PSTH_t_alls,1)-1
+%         if PSTH_t_alls(i, 1) <= Resp_t_thd && PSTH_t_alls(i+1, 1) > Resp_t_thd
+%             Resp_t(1,1) = i;
+%         end
+%         if PSTH_t_alls(i, 1) > Resp_t_thd && PSTH_t_alls(i+1, 1) <= Resp_t_thd
+%             Resp_t(2,1) = i;
+%         end
+%     end
+
+    [~,maxTime] = max(PSTH_t_alls((PreSti+1):end));
+    maxTime = maxTime + PreSti;
+    Resp_t = [0;0];
+    Resp_t(1) = max(1,sum(find(PSTH_t_alls((PreSti+1):maxTime) >= Resp_t_thd,1)))+PreSti; % first above threshold sample, sum of scalar X = X, sum of [] = 0, hence wrapped in sum
+    Resp_t(2) = min(PostSti,sum(find(PSTH_t_alls((maxTime+1):end) < Resp_t_thd,1))+maxTime-1);
 
     Resp_R = zeros(size(PSTH_t,2),3);
     PSTH_tns = zeros(size(PSTH_t,1),size(PSTH_t,2));
@@ -134,7 +144,7 @@ for h = 1:nProbes
     for i = 1:size(PSTH_t,2)       
         PSTH_tr = PSTH_t(:,i);% - Resp_R(i,1)) / Resp_R(i,1);   
         PSTH_trs = smooth(PSTH_tr,5);
-        Response_peak(i,1) = max(PSTH_trs(Resp_t(1,1):Resp_t(2,1)));
+        Response_peak(i,1) = sum(max(PSTH_trs(Resp_t(1,1):Resp_t(2,1))));
     end
 
     Response_peak_2(:,:,h) = reshape(Response_peak,Y,X)';
